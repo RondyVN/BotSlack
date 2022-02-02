@@ -1,0 +1,16 @@
+{
+  "name": "trainingbot",
+  "version": "1.0.0",
+  "description": "",
+  "main": "src",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node ."
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@slack/bolt": "^3.9.0",
+    "@slack/rtm-api": "^6.0.0"
+  }
+}
