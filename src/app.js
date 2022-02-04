@@ -1,22 +1,20 @@
 import {SLACK_APP_TOKEN, SLACK_BOT_TOKEN, SLACK_SIGNING_SECRET} from "./constants";
 
 const {App} = require('@slack/bolt');
-import {typeOfDishes, dishes} from "./objectsDishes";
-import {getOptionObject} from "./getOptionObject";
+import {dishes, typeDishes} from "./objectsDishes";
+import {getOptionDishes, getOptionObject, getOptionTypeDishes} from "./getOptionObject";
+import {getPriceOrder} from "./getPriceOrder";
 
 const app = new App({
     token: SLACK_BOT_TOKEN,
     signingSecret: SLACK_SIGNING_SECRET,
     socketMode: true,
     appToken: SLACK_APP_TOKEN,
-    // Socket Mode doesn't listen on a port, but in case you want your app to respond to OAuth,
-    // you still need to listen on some port!
     port: process.env.PORT || 3000
 });
 
-// Listens to incoming messages that contain "hello"
+
 app.message('hello', async ({say}) => {
-    // say() sends a message to the channel where the event was triggered
     await say({
         blocks: [
             {
@@ -32,7 +30,7 @@ app.message('hello', async ({say}) => {
                         "text": "Select type",
                         "emoji": true
                     },
-                    "options": getOptionObject(typeOfDishes),
+                    "options": getOptionTypeDishes(typeDishes),
                     "action_id": "static_select-action"
                 }
             }
@@ -41,16 +39,10 @@ app.message('hello', async ({say}) => {
 });
 
 app.action('static_select-action', async ({body, ack, client}) => {
-    // Acknowledge the action
     await ack();
     const typeOfDish = body.actions[0].selected_option.value;
 
-    // await say(`<@${body.user.id}> picked the ${typeOfDish}`);
-
-    //const optionDishes = getOptionObject(dishes[typeOfDish])
-
     await client.views.open({
-        // Pass a valid trigger_id within 3 seconds of receiving it
         trigger_id: body.trigger_id,
         // View payload
         view: {
@@ -79,7 +71,7 @@ app.action('static_select-action', async ({body, ack, client}) => {
                             "text": "Select an item",
                             "emoji": true
                         },
-                        "options": getOptionObject(dishes[typeOfDish]),
+                        "options": getOptionDishes(typeDishes, typeOfDish),
                         "action_id": "order"
                     }
                 }
@@ -87,89 +79,76 @@ app.action('static_select-action', async ({body, ack, client}) => {
         }
     });
 
-    //logger.info(result)
-
-    // await say({
-    //     blocks: [
-    //         {
-    //             "type": "section",
-    //             "text": {
-    //                 "type": "mrkdwn",
-    //                 "text": "Pick type of eat"
-    //             },
-    //             "accessory": {
-    //                 "type": "static_select",
-    //                 "placeholder": {
-    //                     "type": "plain_text",
-    //                     "text": "Select type",
-    //                     "emoji": true
-    //                 },
-    //                 "options": optionDishes,
-    //                 "action_id": "order"
-    //             }
-    //         }
-    //     ],
-    // })
 });
+
+// app.action('order', async ({ack, body, client}) => {
+//     await ack;
+//     const keysOrder = Object.keys(body.view.state.values)
+//     const orders = body.view.state.values[keysOrder]['order']['selected_options']
+//     const price = getPriceOrder(orders, dishes);
+//
+//     console.log(price)
+//     await client.views.push({
+//         trigger_id: body.trigger_id,
+//         view: {
+//             type: "modal",
+//             callback_id: "view_2",
+//             title: {
+//                 type: 'plain_text',
+//                 text: 'Modal title'
+//             },
+//             blocks: [
+//                 {
+//                     type: 'section',
+//                     text: {
+//                         type: 'mrkdwn',
+//                         text: `Price ${price}`
+//                     },
+//                     accessory: {
+//                         type: 'button',
+//                         text: {
+//                             type: 'plain_text',
+//                             text: 'Click me!'
+//                         },
+//                         action_id: 'button_abc'
+//                     }
+//                 }
+//             ]
+//         }
+//     })
+// });
 
 app.view('view_1', async ({ack, body, view, client, logger}) => {
     await ack;
     const keysOrder = Object.keys(view.state.values)
-    console.log(view.state.values[keysOrder]['order']['selected_options'])
     const orders = view.state.values[keysOrder]['order']['selected_options']
+    console.log(orders)
+    console.log(body.trigger_id)
 
     try {
         await client.chat.postMessage({
             channel: 'C0319SBGSJ2',
             text: `<@${body.user.id}> order the ${orders.map(order => order.value + ' ')}`
         })
-    }
-    catch (error){
+    } catch (error) {
         logger.error(error)
     }
 });
 
-// app.action('order', async ({ack, client, body}) => {
+// Notification about orders in channel oder
+// app.view('view_1', async ({ack, body, view, client, logger}) => {
 //     await ack;
-//     await client.chat.postMessage({
-//         channel: 'C0319SBGSJ2',
-//         text: `<@${body.user.id}> order ${body.actions[0].selected_option.value}`
-//     })
-// });
-
-// app.action('order', async ({body, ack, client}) => {
-//     // Acknowledge the action
-//     await ack();
-//     const typeOfDish = body.actions[0].selected_option;
-//     const result = await client.views.update({
-//         view_id: body.view.id,
-//         // Pass the current hash to avoid race conditions
-//         hash: body.view.hash,
-//         view: {
-//             type: 'modal',
-//             // View identifier
-//             callback_id: 'view_1',
-//             title: {
-//                 type: 'plain_text',
-//                 text: 'Modal title'
-//             },
-//             "blocks": [
-//                 {
-//                     "type": "section",
-//                     "text": {
-//                         "type": "mrkdwn",
-//                         "text": "This is a section block with an accessory image."
-//                     },
-//                     "accessory": {
-//                         "type": "image",
-//                         "image_url": "https://assets.misteram.com.ua/misteram-public/b1a88a19a4d7bd3b41703ce1ba99802e-826x0.png",
-//                         "alt_text": "cute cat"
-//                     }
-//                 },
-//             ]
-//         }
-//     })
-//     //await say(`<@${body.user.id}> order the ${body.actions[0].selected_option.value}`)
+//     const keysOrder = Object.keys(view.state.values)
+//     const orders = view.state.values[keysOrder]['order']['selected_options']
+//
+//     try {
+//         await client.chat.postMessage({
+//             channel: 'C0319SBGSJ2',
+//             text: `<@${body.user.id}> order the ${orders.map(order => order.value + ' ')}`
+//         })
+//     } catch (error) {
+//         logger.error(error)
+//     }
 // });
 
 (async () => {

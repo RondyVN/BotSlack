@@ -1,10 +1,4 @@
-export const typeOfDishes = {
-    "Мясо і стейки": "Мясо",
-    "Напої": "Апої",
-    "Овочні": "Овочні",
-}
-
-export const dishes = {
+export const dishes1 = {
     "Мясо і стейки": {
         "Чікен бургер з картоплею фрі": {
             "Price": 120,
@@ -46,4 +40,20 @@ export const dishes = {
             "Image": "https://assets.misteram.com.ua/misteram-public/eb39c6bfe5d522d02126e42d0d74e2ef-826x0.png"
         },
     }
+}
+
+export const typeDishes = {
+    "Мясо і стейки": ['Чікен бургер з картоплею фрі', 'Клаб бургер з котлетою'],
+    "Напої": ['CocaCola', 'Coffee'],
+    "Овочні": ['Potato', 'Cucumber', 'Tomato'],
+}
+
+export const dishes = {
+    "Чікен бургер з картоплею фрі": {"price": 150.0},
+    "Клаб бургер з котлетою": {"price": 403.0},
+    "CocaCola": {"price": 50},
+    "Coffee": {"price": 60},
+    "Potato": {"price": 30},
+    "Cucumber": {"price": 30},
+    "Tomato": {"price": 50},
 }
