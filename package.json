@@ -11,6 +11,9 @@
   "license": "ISC",
   "dependencies": {
     "@slack/bolt": "^3.9.0",
-    "@slack/rtm-api": "^6.0.0"
+    "@slack/rtm-api": "^6.0.0",
+    "axios": "^0.25.0",
+    "cheerio": "^1.0.0-rc.10",
+    "esm": "^3.2.25"
   }
 }
