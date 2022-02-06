@@ -2,8 +2,10 @@ import {SLACK_APP_TOKEN, SLACK_BOT_TOKEN, SLACK_SIGNING_SECRET} from "./constant
 
 const {App} = require('@slack/bolt');
 import {dishes, typeDishes} from "./objectsDishes";
-import {getOptionDishes, getOptionObject, getOptionTypeDishes} from "./getOptionObject";
-import {getPriceOrder} from "./getPriceOrder";
+import {getOptionDishes, getOptionTypeDishes} from "./getOptionObject";
+import {pars} from "./parser/parser";
+
+pars()
 
 const app = new App({
     token: SLACK_BOT_TOKEN,
@@ -15,6 +17,7 @@ const app = new App({
 
 
 app.message('hello', async ({say}) => {
+    console.log('Hello')
     await say({
         blocks: [
             {
@@ -51,7 +54,7 @@ app.action('static_select-action', async ({body, ack, client}) => {
             callback_id: 'view_1',
             title: {
                 type: 'plain_text',
-                text: 'Order dishes'
+                text: 'П\'ятниця'
             },
             // submit: {
             //     type: 'plain_text',
@@ -96,7 +99,7 @@ app.action('order', async ({ack, body, client}) => {
             callback_id: "view_2",
             title: {
                 type: 'plain_text',
-                text: 'Modal title'
+                text: 'П\'ятниця'
             },
             // submit: {
             //     type: 'plain_text',
@@ -107,7 +110,7 @@ app.action('order', async ({ack, body, client}) => {
                     type: 'section',
                     text: {
                         type: 'mrkdwn',
-                        text: `Вартість: ${price} грн\n Овочі фруки і тд`
+                        text: `Вартість: ${price} грн\n ${order}`
                     },
                     "accessory": {
                         "type": "image",
