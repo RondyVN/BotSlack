@@ -25,7 +25,7 @@ export const pars = async () => {
                 })
 
             })
-        console.log(typeDishes)
+        // console.log(typeDishes)
 
         const dishesAndTypeDishes = {}
         const allDishes = {}

@@ -4,8 +4,7 @@ const {App} = require('@slack/bolt');
 import {dishes, typeDishes} from "./objectsDishes";
 import {getOptionDishes, getOptionTypeDishes} from "./getOptionObject";
 import {pars} from "./parser/parser";
-
-pars()
+import {WorkflowStep} from "@slack/bolt";
 
 const app = new App({
     token: SLACK_BOT_TOKEN,
@@ -16,8 +15,150 @@ const app = new App({
 });
 
 
+// Try setting workflow
+// app.message('hello', async ({ message, say }) => {
+//     // say() sends a message to the channel where the event was triggered
+//     await say({
+//         blocks: [
+//             {
+//                 "type": "section",
+//                 "text": {
+//                     "type": "mrkdwn",
+//                     "text": `Hey there <@${message.user}>!`
+//                 },
+//                 "accessory": {
+//                     "type": "button",
+//                     "text": {
+//                         "type": "plain_text",
+//                         "text": "Click Me"
+//                     },
+//                     "action_id": "button_click"
+//                 }
+//             }
+//         ],
+//         text: `Hey there <@${message.user}>!`
+//     });
+// });
+//
+// app.action('button_click', async ({ body, ack, say, logger, client}) => {
+//     // Acknowledge the action
+//     await ack();
+//
+//     try {
+//         // Call views.open with the built-in client
+//         const result = await client.views.open({
+//             // Pass a valid trigger_id within 3 seconds of receiving it
+//             trigger_id: body.trigger_id,
+//             // View payload
+//             view: {
+//                 type: 'modal',
+//                 // View identifier
+//                 callback_id: 'view_1',
+//                 title: {
+//                     type: 'plain_text',
+//                     text: 'Modal title'
+//                 },
+//                 blocks: [
+//                     {
+//                         type: 'section',
+//                         text: {
+//                             type: 'mrkdwn',
+//                             text: 'Welcome to a modal with _blocks_'
+//                         },
+//                         accessory: {
+//                             type: 'button',
+//                             text: {
+//                                 type: 'plain_text',
+//                                 text: 'Click me!'
+//                             },
+//                             action_id: 'button_abc'
+//                         }
+//                     },
+//                     {
+//                         type: 'input',
+//                         block_id: 'input_c',
+//                         label: {
+//                             type: 'plain_text',
+//                             text: 'What are your hopes and dreams?'
+//                         },
+//                         element: {
+//                             type: 'plain_text_input',
+//                             action_id: 'dreamy_input',
+//                             multiline: true
+//                         }
+//                     }
+//                 ],
+//                 submit: {
+//                     type: 'plain_text',
+//                     text: 'Submit'
+//                 }
+//             }
+//         });
+//         logger.info(result);
+//     }
+//     catch (error) {
+//         logger.error(error);
+//     }
+//
+// });
+//
+//
+// const ws = new WorkflowStep('add_task', {
+//     edit: async ({ ack, step, configure }) => { },
+//     save: async ({ ack, step, view, update }) => {
+//         await ack();
+//
+//         const { values } = view.state;
+//         const taskName = values.task_name_input.name;
+//         const taskDescription = values.task_description_input.description;
+//
+//         const inputs = {
+//             taskName: { value: taskName.value },
+//             taskDescription: { value: taskDescription.value }
+//         };
+//
+//         const outputs = [
+//             {
+//                 type: 'text',
+//                 name: 'taskName',
+//                 label: 'Task name',
+//             },
+//             {
+//                 type: 'text',
+//                 name: 'taskDescription',
+//                 label: 'Task description',
+//             }
+//         ];
+//
+//         await update({ inputs, outputs });
+//     },
+//     execute: async ({ step, complete, fail }) => { },
+// });
+const channelOrder = "C0319SBGSJ2"
+
+const today = new Date()
+today.setDate(today.getDate())
+today.setHours(15, 11, 0)
+
+const notificationUnixConvert = today.getTime().toString().slice(0, 10)
+
+app.message('start', async ({message, client, logger}) => {
+
+    console.log(notificationUnixConvert)
+    try {
+        // Call chat.scheduleMessage with the built-in client
+        const result = await client.chat.scheduleMessage({
+            channel: channelOrder,
+            post_at: notificationUnixConvert,
+            text: 'Summer has come and passed'
+        });
+    } catch (error) {
+        logger.error(error);
+    }
+});
+
+
 app.message('hello', async ({say}) => {
-    console.log('Hello')
     await say({
         blocks: [
             {
@@ -57,8 +198,8 @@ app.action('static_select-action', async ({body, ack, client}) => {
                 text: 'П\'ятниця'
             },
             // submit: {
-            //     type: 'plain_text',
-            //     text: 'Submit',
+            //     type: "plain_text",
+            //     text: "Order"
             // },
             "blocks": [
                 {
@@ -168,7 +309,7 @@ app.action('confirm_order', async ({ack, body, client, logger}) => {
                     },
                     {
                         type: 'image',
-                        image_url: 'https://media.giphy.com/media/SVZGEcYt7brkFUyU90/giphy.gif',
+                        image_url: 'https://www.wall-art.de/out/pictures/generated/product/2/780_780_80/4512-wandtattoo-bon-appetit-web-einzel.jpg',
                         alt_text: 'Замовлення отримано'
                     }
                 ]
@@ -176,88 +317,16 @@ app.action('confirm_order', async ({ack, body, client, logger}) => {
         })
         await client.chat.postMessage({
             channel: 'C0319SBGSJ2',
-            text: `<@${body.user.id}> order the ${order}`
+            text: `<@${body.user.id}> ordered ${order}`
         })
     } catch (error) {
         logger.error(error)
     }
 });
 
-// Modal with price
-// app.action('order', async ({ack, body, client}) => {
-//     await ack;
-//     const keysOrder = Object.keys(body.view.state.values)
-//     const orders = body.view.state.values[keysOrder]['order']['selected_options']
-//     const price = getPriceOrder(orders, dishes);
-//
-//     console.log(price)
-//     await client.views.push({
-//         trigger_id: body.trigger_id,
-//         view: {
-//             type: "modal",
-//             callback_id: "view_2",
-//             title: {
-//                 type: 'plain_text',
-//                 text: 'Modal title'
-//             },
-//             blocks: [
-//                 {
-//                     type: 'section',
-//                     text: {
-//                         type: 'mrkdwn',
-//                         text: `Price ${price}`
-//                     },
-//                     accessory: {
-//                         type: 'button',
-//                         text: {
-//                             type: 'plain_text',
-//                             text: 'Click me!'
-//                         },
-//                         action_id: 'button_abc'
-//                     }
-//                 }
-//             ]
-//         }
-//     })
-// });
-
-// Testing Modal
-// app.view('view_1', async ({ack, body, view, client, logger}) => {
-//     await ack;
-//     const keysOrder = Object.keys(view.state.values)
-//     const order = view.state.values[keysOrder]['order']['selected_option']['value']
-//     // console.log(order)
-//     // console.log(body.trigger_id)
-//
-//     try {
-//         await client.chat.postMessage({
-//             channel: 'C0319SBGSJ2',
-//             text: `<@${body.user.id}> order the ${order}`
-//         })
-//     } catch (error) {
-//         logger.error(error)
-//     }
-// });
-
-// Notification about orders in channel oder(Multi select)
-// app.view('view_1', async ({ack, body, view, client, logger}) => {
-//     await ack;
-//     const keysOrder = Object.keys(view.state.values)
-//     const orders = view.state.values[keysOrder]['order']['selected_options']['value']
-//
-//
-//     try {
-//         await client.chat.postMessage({
-//             channel: 'C0319SBGSJ2',
-//             text: `<@${body.user.id}> order the ${orders.map(order => order.value + ' ')}`
-//         })
-//     } catch (error) {
-//         logger.error(error)
-//     }
-// });
-
 (async () => {
     // Start your app
+    // await pars()
     await app.start();
     console.log('⚡️ Bolt app is running!');
 })();
