@@ -3,6 +3,9 @@ const {SLACK_BOT_TOKEN, SLACK_SIGNING_SECRET, SLACK_APP_TOKEN} = require("./cons
 const {getOptionTypeDishes, getOptionDishes} = require("./utils/getOptionObject");
 const typeDishes = require("../typeDishesDate.json");
 const dishes = require("../allDishesDate.json");
+const {pars} = require("./parser/parser");
+const {writeJson} = require("./utils/writeJSON");
+const {get} = require("cheerio/lib/api/traversing");
 
 
 const app = new App({
@@ -13,7 +16,6 @@ const app = new App({
     port: process.env.PORT || 3000
 });
 
-
 const ws = new WorkflowStep("test_step", {
     edit: async ({ ack, step, configure }) => {
         await ack();
@@ -21,34 +23,34 @@ const ws = new WorkflowStep("test_step", {
         const blocks = [
             {
                 type: 'input',
-                block_id: 'task_name_input',
+                block_id: 'channel_order',
                 element: {
-                    type: 'plain_text_input',
-                    action_id: 'name',
+                    type: 'channels_select',
+                    action_id: 'channel',
                     placeholder: {
                         type: 'plain_text',
-                        text: 'Add a task name',
+                        text: 'Choose channel',
                     },
                 },
                 label: {
                     type: 'plain_text',
-                    text: 'Task name',
+                    text: 'Add a channel for order',
                 },
             },
             {
                 type: 'input',
-                block_id: 'task_description_input',
+                block_id: 'channel_accept_order',
                 element: {
-                    type: 'plain_text_input',
-                    action_id: 'description',
+                    type: 'channels_select',
+                    action_id: 'channel',
                     placeholder: {
                         type: 'plain_text',
-                        text: 'Add a task description',
+                        text: 'Choose channel',
                     },
                 },
                 label: {
                     type: 'plain_text',
-                    text: 'Task description',
+                    text: 'Add a channel for accept order',
                 },
             },
         ];
@@ -59,25 +61,26 @@ const ws = new WorkflowStep("test_step", {
         await ack();
         console.log('hello save')
 
-        const { values } = view.state;
-        const taskName = values.task_name_input.name;
-        const taskDescription = values.task_description_input.description;
+        const {values} = view.state;
+        console.log(values)
+        const nameChannelOrder = values.channel_order.channel;
+        const nameChannelAcceptOrder = values.channel_accept_order.channel
 
         const inputs = {
-            taskName: { value: taskName.value },
-            taskDescription: { value: taskDescription.value }
+            nameChannelOrder: {value: nameChannelOrder.selected_channel},
+            nameChannelAcceptOrder: {value: nameChannelAcceptOrder.selected_channel}
         };
 
         const outputs = [
             {
                 type: 'text',
-                name: 'taskName',
-                label: 'Task name',
+                name: 'nameChannelOrder',
+                label: 'Channel name for order',
             },
             {
                 type: 'text',
-                name: 'taskDescription',
-                label: 'Task description',
+                name: 'nameChannelAcceptOrder',
+                label: 'Channel name for order accept',
             }
         ];
 
@@ -85,12 +88,15 @@ const ws = new WorkflowStep("test_step", {
     },
     execute: async ({ step, complete, fail , client, message}) => {
         const { inputs } = step;
+        const channelForOrder = inputs.nameChannelOrder.value;
+        const channelForAcceptOrder = inputs.nameChannelAcceptOrder.value;
 
         await client.chat.postMessage({
-            channel: 'C03122MEV46',
+            channel: channelForOrder,
             blocks: [
                 {
                     "type": "section",
+                    "block_id": channelForAcceptOrder,
                     "text": {
                         "type": "mrkdwn",
                         "text": "Pick type of eat"
@@ -104,19 +110,18 @@ const ws = new WorkflowStep("test_step", {
                         },
                         "options": getOptionTypeDishes(typeDishes),
                         "action_id": "static_select-action"
-                    }
-                }
+                    },
+                },
             ],
         })
 
         const outputs = {
-            taskName: inputs.taskName.value,
-            taskDescription: inputs.taskDescription.value,
+            nameChannelOrder: channelForOrder,
+            nameChannelAcceptOrder: channelForAcceptOrder
         };
 
+        writeJson('channels.json', outputs)
         // signal back to Slack that everything was successful
-        console.log(inputs.taskName.value)
-        console.log(inputs.taskDescription.value)
         await complete({ outputs });
         // NOTE: If you run your app with processBeforeResponse: true option,
         // `await complete()` is not recommended because of the slow response of the API endpoint
@@ -128,15 +133,15 @@ const ws = new WorkflowStep("test_step", {
         // await fail({ error: { message: "Just testing step failure!" } });
         // NOTE: If you run your app with processBeforeResponse: true, use this instead:
         // fail({ error: { message: "Just testing step failure!" } }).then(() => { console.log('workflow step execution failure registered'); });
-    },
+    }
 });
 
 app.step(ws);
 
 app.action('static_select-action', async ({body, ack, client}) => {
     await ack();
+    // console.log(body.message.blocks[0].block_id)
     const typeOfDish = body.actions[0].selected_option.value;
-
     await client.views.open({
         trigger_id: body.trigger_id,
         // View payload
@@ -155,7 +160,8 @@ app.action('static_select-action', async ({body, ack, client}) => {
             "blocks": [
                 {
                     "type": "section",
-                    "text": {
+                    "block_id": body.message.blocks[0].block_id,
+                        "text": {
                         "type": "mrkdwn",
                         "text": "Choose a dish to order"
                     },
@@ -181,10 +187,8 @@ app.action('order', async ({ack, body, client}) => {
     await ack;
     const keysOrder = Object.keys(body.view.state.values)
     const order = body.view.state.values[keysOrder]['order']['selected_option']['value']
-    // console.log(body.view.state.values[keysOrder]['order']['selected_option']['value'])
-    const price = dishes[order]['price'];// getPriceOrder(order, dishes);
+    const price = dishes[order]['price'];
 
-    // console.log(price)
     await client.views.push({
         trigger_id: body.trigger_id,
         view: {
@@ -200,16 +204,23 @@ app.action('order', async ({ack, body, client}) => {
             // },
             blocks: [
                 {
+                    block_id: body.actions[0].block_id,
                     type: 'section',
                     text: {
                         type: 'mrkdwn',
-                        text: `Вартість: ${price} грн\n ${order}`
+                        text: `Вартість: ${price} грн\n Замовлення: ${order} \n${!dishes[order]['description']
+                            ? ''
+                            : 'Опис: ' + dishes[order]['description']
+                        }`
                     },
                     "accessory": {
                         "type": "image",
                         "image_url": dishes[order]['image'],
                         "alt_text": "cute cat",
                     }
+                },
+                {
+                    "type": "divider"
                 },
                 {
                     "type": "section",
@@ -236,7 +247,8 @@ app.action('order', async ({ack, body, client}) => {
 app.action('confirm_order', async ({ack, body, client, logger}) => {
     await ack;
     const order = body.actions[0]['value']
-    console.log(order)
+    const channelForAcceptOrder = body.view.blocks[0].block_id
+    console.log(body.view.blocks[0].block_id)
 
     try {
         await client.views.update({
@@ -268,14 +280,13 @@ app.action('confirm_order', async ({ack, body, client, logger}) => {
             }
         })
         await client.chat.postMessage({
-            channel: 'C0319SBGSJ2',
+            channel: channelForAcceptOrder,
             text: `<@${body.user.id}> ordered ${order}`
         })
     } catch (error) {
         logger.error(error)
     }
 });
-
 
 (async () => {
     // Start your app
