@@ -14,6 +14,7 @@
     "@slack/rtm-api": "^6.0.0",
     "axios": "^0.25.0",
     "cheerio": "^1.0.0-rc.10",
-    "esm": "^3.2.25"
+    "esm": "^3.2.25",
+    "google-spreadsheet": "^3.2.0"
   }
 }
